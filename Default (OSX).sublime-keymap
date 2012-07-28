@@ -1,0 +1,6 @@
+[
+  {
+    "keys": ["super+shift+i"], 
+    "command": "go_to_ruby_definition" 
+  }
+]
