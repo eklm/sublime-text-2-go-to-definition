@@ -17,6 +17,11 @@ class DefinitionsIndex:
             position += len(line)
         f.close()
 
+    def reindex_file(self, filename):
+        if self.is_initialized():
+            self.definitions_index = filter(lambda x: x.filename != filename, self.definitions_index)
+            self.index_file(filename)
+
     def index_folders(self, folders):
         for directory in folders:
             for root, dirs, files in os.walk(directory):
@@ -95,3 +100,7 @@ class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
             items = map(lambda x: [x.name, x.filename], found_definitions)
             process_selected = lambda i: goto_definition(found_definitions[i]) if i != -1 else None
             self.view.window().show_quick_panel(items, process_selected)
+
+class IndexUpdater(sublime_plugin.EventListener):
+    def on_post_save(self, view):
+        get_definitions_index().reindex_file(view.file_name())
