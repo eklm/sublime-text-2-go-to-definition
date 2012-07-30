@@ -1,6 +1,10 @@
 [
   {
-    "keys": ["super+shift+i"], 
+    "keys": ["super+i"], 
     "command": "go_to_ruby_definition" 
+  },
+  {
+    "keys": ["super+shift+i"], 
+    "command": "go_to_ruby_definition_dialog" 
   }
 ]

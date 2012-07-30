@@ -25,22 +25,12 @@ class DefinitionsIndex:
                         filename = os.path.join(root, basename)
                         self.index_file(filename)
 
-    def build(self, folders, on_build_callback):
+    def build(self, folders, callback):
         print("Start building index...")
         self.index_folders(folders)
         self.status = "initialized"
         print("Building index finished")
-        sublime.set_timeout(on_build_callback, 0)
-
-    def start_building(self, on_build_callback):
-        sublime.status_message("Building index...")
-        if self.status == "uninitialized":
-            self.status = "loading"
-            thread = threading.Thread(target=self.build,args=(sublime.active_window().folders(), on_build_callback, ))
-            thread.start()
-
-    def get(self):
-        return self.definitions_index
+        sublime.set_timeout(lambda: callback(self.definitions_index), 0)
 
     def is_initialized(self):
         return self.status == "initialized"
@@ -48,6 +38,14 @@ class DefinitionsIndex:
     def is_loading(self):
         return self.status == "loading"
 
+    def build_if_needed_and_do(self, callback):
+        if self.is_initialized():
+            callback(self.definitions_index)
+        elif not self.is_loading():
+            sublime.status_message("Building index...")
+            self.status = "loading"
+            thread = threading.Thread(target=self.build,args=(sublime.active_window().folders(), callback, ))
+            thread.start()
 
 class Definition:
     def __init__(self, name, filename, position):
@@ -68,29 +66,32 @@ def get_definitions_index():
     definitions_index = definitions_index_by_window[window_id]
     return definitions_index
 
+def goto_definition(definition):
+    opened_view = sublime.active_window().open_file(definition.filename)
+    opened_view.sel().clear()
+    opened_view.sel().add(definition.position)
+    opened_view.show(definition.position)
 
-class GoToRubyDefinitionCommand(sublime_plugin.WindowCommand):
-
+class GoToRubyDefinitionDialogCommand(sublime_plugin.WindowCommand):
     def run(self):
-        self.show_panel()
+        get_definitions_index().build_if_needed_and_do(self.show_panel)
 
-    def show_panel(self):
-        definitions_index = get_definitions_index()
-        if definitions_index.is_initialized():
-            self.window.show_quick_panel(
-                map(lambda x: [x.name, x.filename], definitions_index.get()), 
-                self.process_selected
-            )
-        elif not definitions_index.is_loading():
-            definitions_index.start_building(self.show_panel)
-            
-    def process_selected(self, index):
-        if index != -1:
-            self.goto_definition(get_definitions_index().get()[index])
+    def show_panel(self, index):
+        items = map(lambda x: [x.name, x.filename], index)
+        process_selected = lambda i: goto_definition(index[i]) if i != -1 else None
+        self.window.show_quick_panel(items, process_selected) 
+                        
 
-    def goto_definition(self, definition):
-        opened_view = self.window.open_file(definition.filename)
-        opened_view.sel().clear()
-        opened_view.sel().add(definition.position)
-        opened_view.show(definition.position)
+class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        get_definitions_index().build_if_needed_and_do(self.go_to_definition)
 
+    def go_to_definition(self, index):
+        word = self.view.substr(self.view.word(self.view.sel()[0]))
+        found_definitions = filter(lambda definition: definition.name == word, index)
+        if len(found_definitions) == 1:
+            goto_definition(found_definitions[0])
+        elif len(found_definitions) > 1:
+            items = map(lambda x: [x.name, x.filename], found_definitions)
+            process_selected = lambda i: goto_definition(found_definitions[i]) if i != -1 else None
+            self.view.window().show_quick_panel(items, process_selected)
