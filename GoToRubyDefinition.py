@@ -11,7 +11,7 @@ class DefinitionsIndex:
         f = open(filename)
         position = 0
         for line in f:
-            match = re.search('(def|class) (\w*)', line)
+            match = re.search('(module|def|class) (\w*)', line)
             if match:
                 self.definitions_index.append(Definition(match.group(2), filename, position))
             position += len(line)
