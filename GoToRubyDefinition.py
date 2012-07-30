@@ -55,7 +55,19 @@ class Definition:
         self.filename = filename
         self.position = position
 
-definitions_index = DefinitionsIndex()
+definitions_index_by_window = {}
+
+def get_definitions_index():
+    global definitions_index_by_window
+
+    window_id = sublime.active_window().id()
+    
+    if not window_id in definitions_index_by_window:
+        definitions_index_by_window[window_id] = DefinitionsIndex()
+
+    definitions_index = definitions_index_by_window[window_id]
+    return definitions_index
+
 
 class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
 
@@ -63,7 +75,7 @@ class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
         self.show_panel()
 
     def show_panel(self):
-        global definitions_index
+        definitions_index = get_definitions_index()
         if definitions_index.is_initialized():
             self.view.window().show_quick_panel(
                 map(lambda x: [x.name, x.filename], definitions_index.get()), 
@@ -73,9 +85,8 @@ class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
             definitions_index.start_building(self.show_panel)
             
     def process_selected(self, index):
-        global definitions_index
         if index != -1:
-            self.goto_definition(definitions_index.get()[index])
+            self.goto_definition(get_definitions_index().get()[index])
 
     def goto_definition(self, definition):
         opened_view = self.view.window().open_file(definition.filename)
