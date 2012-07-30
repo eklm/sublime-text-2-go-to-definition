@@ -1,10 +1,10 @@
 [
   {
     "keys": ["ctrl+i"], 
-    "command": "go_to_ruby_definition" 
+    "command": "go_to_definition" 
   },
   {
     "keys": ["ctrl+shift+i"], 
-    "command": "go_to_ruby_definition_dialog" 
+    "command": "go_to_definition_dialog" 
   }
 ]

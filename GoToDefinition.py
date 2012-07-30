@@ -3,19 +3,46 @@ import os, fnmatch, re
 import threading
 
 class DefinitionsIndex:
+    supported_languages = [
+        {
+            "filematch" : "*.rb",
+            "regexp": "(module|def|class) (\w+)",
+            "extract": lambda m: m.group(2)
+        },
+        {
+            "filematch": "*.py",
+            "regexp": "(def|class) (\w+)",
+            "extract": lambda m: m.group(2)
+        },
+        {
+            "filematch": "*.scala",
+            "regexp": "(trait|object|class|def) (\w+)",
+            "extract": lambda m: m.group(2)
+        },
+        {
+            "filematch": "*.js",
+            "regexp": "function (\w+)|(\w+): function",
+            "extract": lambda m: m.group(1) or m.group(2)
+        }
+    ]
+    
     def __init__(self):
         self.definitions_index = []
         self.status = "uninitialized"
 
     def index_file(self, filename):
-        f = open(filename)
-        position = 0
-        for line in f:
-            match = re.search('(module|def|class) (\w*)', line)
-            if match:
-                self.definitions_index.append(Definition(match.group(2), filename, position))
-            position += len(line)
-        f.close()
+        basename = os.path.basename(filename)
+        languages = filter(lambda l: fnmatch.fnmatch(basename, l["filematch"]), DefinitionsIndex.supported_languages)
+        if len(languages) == 1:
+            language = languages[0]
+            f = open(filename)
+            position = 0
+            for line in f:
+                match = re.search(language["regexp"], line)
+                if match:
+                    self.definitions_index.append(Definition(language["extract"](match), filename, position))
+                position += len(line)
+            f.close()
 
     def reindex_file(self, filename):
         if self.is_initialized():
@@ -26,9 +53,8 @@ class DefinitionsIndex:
         for directory in folders:
             for root, dirs, files in os.walk(directory):
                 for basename in files:
-                    if fnmatch.fnmatch(basename, "*.rb"):
-                        filename = os.path.join(root, basename)
-                        self.index_file(filename)
+                    filename = os.path.join(root, basename)
+                    self.index_file(filename)
 
     def build(self, folders, callback):
         print("Start building index...")
@@ -77,7 +103,7 @@ def goto_definition(definition):
     opened_view.sel().add(definition.position)
     opened_view.show(definition.position)
 
-class GoToRubyDefinitionDialogCommand(sublime_plugin.WindowCommand):
+class GoToDefinitionDialogCommand(sublime_plugin.WindowCommand):
     def run(self):
         get_definitions_index().build_if_needed_and_do(self.show_panel)
 
@@ -87,7 +113,7 @@ class GoToRubyDefinitionDialogCommand(sublime_plugin.WindowCommand):
         self.window.show_quick_panel(items, process_selected) 
                         
 
-class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
+class GoToDefinitionCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         get_definitions_index().build_if_needed_and_do(self.go_to_definition)
 
