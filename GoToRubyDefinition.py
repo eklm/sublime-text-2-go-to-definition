@@ -69,15 +69,15 @@ def get_definitions_index():
     return definitions_index
 
 
-class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
+class GoToRubyDefinitionCommand(sublime_plugin.WindowCommand):
 
-    def run(self, edit):
+    def run(self):
         self.show_panel()
 
     def show_panel(self):
         definitions_index = get_definitions_index()
         if definitions_index.is_initialized():
-            self.view.window().show_quick_panel(
+            self.window.show_quick_panel(
                 map(lambda x: [x.name, x.filename], definitions_index.get()), 
                 self.process_selected
             )
@@ -89,7 +89,7 @@ class GoToRubyDefinitionCommand(sublime_plugin.TextCommand):
             self.goto_definition(get_definitions_index().get()[index])
 
     def goto_definition(self, definition):
-        opened_view = self.view.window().open_file(definition.filename)
+        opened_view = self.window.open_file(definition.filename)
         opened_view.sel().clear()
         opened_view.sel().add(definition.position)
         opened_view.show(definition.position)
