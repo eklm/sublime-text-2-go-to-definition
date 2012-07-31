@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "Go to definition",
+        "command": "go_to_definition"
+    },
+    {
+        "caption": "Go to definition dialog",
+        "command": "go_to_definition_dialog"
+    }
+]
