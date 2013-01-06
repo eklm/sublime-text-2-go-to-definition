@@ -7,7 +7,7 @@ class DefinitionsIndex:
         {
             "filematch" : "*.rb",
             "regexp": "(module|def|class) (self\.\w+|\w+)",
-            "extract": lambda m: m.group(2)
+            "extract": lambda m: m.group(2)[5:] if m.group(2).startswith("self.") else m.group(2)
         },
         {
             "filematch": "*.py",
@@ -41,8 +41,6 @@ class DefinitionsIndex:
                 match = re.search(language["regexp"], line)
                 if match:
                     name = language["extract"](match)
-                    if language["filematch"] == "*.rb" and name.startswith("self."):
-                        name = name[5:]
                     self.definitions_index.append(Definition(name, filename, position))
                 position += len(line)
             f.close()
