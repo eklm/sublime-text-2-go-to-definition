@@ -6,7 +6,7 @@ class DefinitionsIndex:
     supported_languages = [
         {
             "filematch" : "*.rb",
-            "regexp": "(module|def|class) (\w+)",
+            "regexp": "(module|def|class) (self\.\w+|\w+)",
             "extract": lambda m: m.group(2)
         },
         {
@@ -40,7 +40,10 @@ class DefinitionsIndex:
             for line in f:
                 match = re.search(language["regexp"], line)
                 if match:
-                    self.definitions_index.append(Definition(language["extract"](match), filename, position))
+                    name = language["extract"](match)
+                    if language["filematch"] == "*.rb" and name.startswith("self."):
+                        name = name[5:]
+                    self.definitions_index.append(Definition(name, filename, position))
                 position += len(line)
             f.close()
 
